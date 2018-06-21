@@ -1,12 +1,15 @@
 
-define(['base'], function(Base) {
+define
+
+define(['base','babylon'], function(Base, BABYLON) {
 	'use strict';
+
 	var SoftEngine;
 	// Camera
 	(function(se) {
 		var Camera = function() {
 			function Camera() {
-				this.positon = Base.Vector3.Zero()
+				this.positon = BABYLON.Vector3.Zero()
 			}
 			return Camera;
 		} ();
