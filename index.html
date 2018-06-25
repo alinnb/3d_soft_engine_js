@@ -1,22 +1,18 @@
-<!DOCTYPE html>
-<html lang="en">
+﻿<!DOCTYPE html>
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>soft_engine</title>
+    <title>3D Soft Engine using HTML5 Canvas</title>
     <style>
         canvas {
-            border: 1px black solid;
-            background: gray;
+            width: 640px;
+            height: 480px;
         }
     </style>
-    
+    <script src="babylon.math.js"></script>
+    <script src="SoftEngine.js"></script>
+    <script src="main.js"></script>
 </head>
 <body>
-    <canvas id='main_canvas' width="600" height="600"></canvas>
-
-    <!-- <script src='require.js'></script> -->
-    <script src="require.js" data-main="soft_engine"></script>
+    <canvas id="frontBuffer" width="640" height="480" style="background-color: black;"></canvas>
 </body>
 </html>
