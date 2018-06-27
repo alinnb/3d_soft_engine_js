@@ -30,18 +30,29 @@ var SoftEngine;
             this.workingWidth = canvas.width;
             this.workingHeight = canvas.height;
             this.workingContext = this.workingCanvas.getContext("2d");
+            this.zbuffer = new Array(this.workingWidth * this.workingHeight);
         };
         Device.prototype.clear = function () {
             this.workingContext.clearRect(0, 0, this.workingWidth, this.workingHeight);
             this.backbuffer = this.workingContext.getImageData(0, 0, this.workingWidth, this.workingHeight);
-            this.zbuffer = [this.workingWidth * this.workingHeight];
+            for(var i = 0; i < this.workingWidth * this.workingHeight; i ++) {
+                this.zbuffer[i] = 10000000;
+            }
         };
         Device.prototype.present = function () {
             this.workingContext.putImageData(this.backbuffer, 0, 0);
         };
-        Device.prototype.putPixel = function (x, y, color) {
+        Device.prototype.putPixel = function (x, y, z, color) {
             this.backbufferdata = this.backbuffer.data;
-            var index = ((x >> 0) + (y >> 0) * this.workingWidth) * 4;
+            var indexZ = ((x >> 0) + (y >> 0) * this.workingWidth);
+            var index = indexZ * 4;
+
+            if(this.zbuffer[indexZ] < z) {
+                return;
+            }
+
+            this.zbuffer[indexZ] = z;
+
             this.backbufferdata[index] = color.r * 255;
             this.backbufferdata[index + 1] = color.g * 255;
             this.backbufferdata[index + 2] = color.b * 255;
@@ -55,63 +66,39 @@ var SoftEngine;
         };
         Device.prototype.drawPoint = function (point, color) {
             if(point.x >= 0 && point.y >= 0 && point.x < this.workingWidth && point.y < this.workingHeight) {
-                this.putPixel(point.x, point.y, color);
+                this.putPixel(point.x, point.y, point.z, color);
             }
         };
-        Device.prototype.drawLine = function (point0, point1) {
-            var dist = point1.subtract(point0).length();
-            if(dist < 2) {
-                return;
-            }
-            var middlePoint = point0.add((point1.subtract(point0)).scale(0.5));
-            this.drawPoint(middlePoint);
-            this.drawLine(point0, middlePoint);
-            this.drawLine(middlePoint, point1);
-        };
-        Device.prototype.drawBline = function (point0, point1, color) {
-            var x0 = point0.x >> 0;
-            var y0 = point0.y >> 0;
-            var x1 = point1.x >> 0;
-            var y1 = point1.y >> 0;
-            var dx = Math.abs(x1 - x0);
-            var dy = Math.abs(y1 - y0);
-            var sx = (x0 < x1) ? 1 : -1;
-            var sy = (y0 < y1) ? 1 : -1;
-            var err = dx - dy;
-            while(true) {
-                this.drawPoint(new BABYLON.Vector2(x0, y0), color);
-                if((x0 == x1) && (y0 == y1)) {
-                    break;
-                }
-                var e2 = 2 * err;
-                if(e2 > -dy) {
-                    err -= dy;
-                    x0 += sx;
-                }
-                if(e2 < dx) {
-                    err += dx;
-                    y0 += sy;
-                }
-            }
-        };
-        Device.prototype.rasterization = function(p1, p2, p3) {
-            //draw face
-            var face_color = new BABYLON.Color4(1, 1, 0, 1);
-            var t = new Base.Triangle(p1, p2, p3);
-            t.sort()
-            var f = t.processScanLine()
+        Device.prototype.drawLine = function(p1, p2, color) {
+            var line = new Base.Line(p1, p2);
+            var gen = line.processScanBresenham();
             do {
-                var p = f.next()
+                var p = gen.next();
                 if (p.done) {
                     break;
                 }
-                this.drawBline(p.value.point1, p.value.point2, face_color)
+                this.drawPoint(p.value, color);
+            }
+            while(!p.done)
+        }
+        Device.prototype.drawTriangle = function(p1, p2, p3, color) {
+            //draw face
+            var face_color = color;
+            var triangle = new Base.Triangle(p1, p2, p3);
+            triangle.sort();
+            var gen = triangle.processScanLine();
+            do {
+                var p = gen.next();
+                if (p.done) {
+                    break;
+                }
+                this.drawLine(p.value.point1, p.value.point2, face_color)
             } while(!p.done)
             //draw lines
             var color = new BABYLON.Color4(1, 0, 0, 1);
-            this.drawBline(p1, p2, color);
-            this.drawBline(p2, p3, color);
-            this.drawBline(p3, p1, color);            
+            this.drawLine(p1, p2, color);
+            this.drawLine(p2, p3, color);
+            this.drawLine(p3, p1, color);
         }
         Device.prototype.render = function (camera, meshes) {
             var viewMatrix = BABYLON.Matrix.LookAtLH(camera.Position, camera.Target, BABYLON.Vector3.Up());
@@ -128,7 +115,7 @@ var SoftEngine;
                     var pixelA = this.project(vertexA, transformMatrix);
                     var pixelB = this.project(vertexB, transformMatrix);
                     var pixelC = this.project(vertexC, transformMatrix);
-                    this.rasterization(pixelA, pixelB, pixelC)
+                    this.drawTriangle(pixelA, pixelB, pixelC, new BABYLON.Color4(1, 1, 0, 1))
                 }
             }
         };

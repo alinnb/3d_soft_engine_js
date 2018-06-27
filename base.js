@@ -1,5 +1,60 @@
 var Base;
 (function (Base) {
+    // Lines
+    var Line = (function () {
+        function Line(p1, p2) {
+            this.p1 = p1;
+            this.p2 = p2;
+        }
+
+        //已知P1， P2点，P3XY,插值P3Z
+        Line.prototype.interpolateZbyXY = function(p1, p2, p3x, p3y) {
+            if (p1.x == p2.x && p1.y == p2.y) {
+                return (p1.z + p2.z) >> 1;
+            }
+            delta_x = p2.x - p1.x;
+            delta_y = p2.y - p1.y;
+            delta_z = p2.z - p1.z;
+            //已知p3.Y
+            if (Math.abs(delta_x) < Math.abs(delta_y)) {
+                return (p3y - p1.y) * delta_z / delta_y + p1.z;
+            }
+            else {
+                return (p3x - p1.x) * delta_z / delta_x + p1.z;
+            }
+        }
+
+        Line.prototype.processScanBresenham = function* () {
+            var x0 = this.p1.x >> 0;
+            var y0 = this.p1.y >> 0;
+            var x1 = this.p2.x >> 0;
+            var y1 = this.p2.y >> 0;
+            var dx = Math.abs(x1 - x0);
+            var dy = Math.abs(y1 - y0);
+            var sx = (x0 < x1) ? 1 : -1;
+            var sy = (y0 < y1) ? 1 : -1;
+            var err = dx - dy;
+            while(true) {
+                yield new BABYLON.Vector3(x0, y0, this.interpolateZbyXY(this.p1, this.p2, x0, y0));
+                if((x0 == x1) && (y0 == y1)) {
+                    return;
+                }
+                var e2 = 2 * err;
+                if(e2 > -dy) {
+                    err -= dy;
+                    x0 += sx;
+                }
+                if(e2 < dx) {
+                    err += dx;
+                    y0 += sy;
+                }
+            }
+        };
+
+        return Line;
+    })();
+    Base.Line = Line;
+
     // Triangle
     var Triangle = (function () {
         function Triangle(p1, p2, p3) {
