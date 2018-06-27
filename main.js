@@ -8,16 +8,20 @@ window.requestAnimationFrame = (function () {
      })();
 
 var canvas;
+var fps;
 var device;
 var meshes = [];
 var mera;
+var previousDate;
 
 document.addEventListener("DOMContentLoaded", init, false);
 
 function init() {
     canvas = document.getElementById("frontBuffer");
+    fps = document.getElementById("fps");
     mera = new SoftEngine.Camera();
     device = new SoftEngine.Device(canvas);
+    previousDate = new Date();
     mera.Position = new BABYLON.Vector3(0, 0, 10);
     mera.Target = new BABYLON.Vector3(0, 0, 0);
     
@@ -77,6 +81,11 @@ function loadJSONCompleted(meshesLoaded) {
 
 // Rendering loop handler
 function drawingLoop() {
+    var now = new Date();
+    var currentFps = 1000.0 / (now.getMilliseconds() - previousDate.getMilliseconds());
+    previousDate = now;
+    fps.innerHTML = Math.floor(currentFps) + 'fps'
+
     device.clear();
 
     auto_rotation();
