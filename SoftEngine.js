@@ -1,5 +1,6 @@
 var SoftEngine;
 (function (SoftEngine) {
+    // camera
     var Camera = (function () {
         function Camera() {
             this.Position = BABYLON.Vector3.Zero();
@@ -8,6 +9,8 @@ var SoftEngine;
         return Camera;
     })();
     SoftEngine.Camera = Camera;    
+
+    // mesh
     var Mesh = (function () {
         function Mesh(name, verticesCount, facesCount) {
             this.name = name;
@@ -18,17 +21,20 @@ var SoftEngine;
         }
         return Mesh;
     })();
-    SoftEngine.Mesh = Mesh;    
+    SoftEngine.Mesh = Mesh;
+
+    // device
     var Device = (function () {
         function Device(canvas) {
             this.workingCanvas = canvas;
             this.workingWidth = canvas.width;
             this.workingHeight = canvas.height;
             this.workingContext = this.workingCanvas.getContext("2d");
-        }
+        };
         Device.prototype.clear = function () {
             this.workingContext.clearRect(0, 0, this.workingWidth, this.workingHeight);
             this.backbuffer = this.workingContext.getImageData(0, 0, this.workingWidth, this.workingHeight);
+            this.zbuffer = [this.workingWidth * this.workingHeight];
         };
         Device.prototype.present = function () {
             this.workingContext.putImageData(this.backbuffer, 0, 0);
@@ -45,11 +51,11 @@ var SoftEngine;
             var point = BABYLON.Vector3.TransformCoordinates(coord, transMat);
             var x = point.x * this.workingWidth + this.workingWidth / 2.0 >> 0;
             var y = -point.y * this.workingHeight + this.workingHeight / 2.0 >> 0;
-            return (new BABYLON.Vector2(x, y));
+            return (new BABYLON.Vector3(x, y, point.z));
         };
-        Device.prototype.drawPoint = function (point) {
+        Device.prototype.drawPoint = function (point, color) {
             if(point.x >= 0 && point.y >= 0 && point.x < this.workingWidth && point.y < this.workingHeight) {
-                this.putPixel(point.x, point.y, new BABYLON.Color4(1, 1, 0, 1));
+                this.putPixel(point.x, point.y, color);
             }
         };
         Device.prototype.drawLine = function (point0, point1) {
@@ -62,7 +68,7 @@ var SoftEngine;
             this.drawLine(point0, middlePoint);
             this.drawLine(middlePoint, point1);
         };
-        Device.prototype.drawBline = function (point0, point1) {
+        Device.prototype.drawBline = function (point0, point1, color) {
             var x0 = point0.x >> 0;
             var y0 = point0.y >> 0;
             var x1 = point1.x >> 0;
@@ -73,7 +79,7 @@ var SoftEngine;
             var sy = (y0 < y1) ? 1 : -1;
             var err = dx - dy;
             while(true) {
-                this.drawPoint(new BABYLON.Vector2(x0, y0));
+                this.drawPoint(new BABYLON.Vector2(x0, y0), color);
                 if((x0 == x1) && (y0 == y1)) {
                     break;
                 }
@@ -88,6 +94,25 @@ var SoftEngine;
                 }
             }
         };
+        Device.prototype.rasterization = function(p1, p2, p3) {
+            //draw face
+            var face_color = new BABYLON.Color4(1, 1, 0, 1);
+            var t = new Base.Triangle(p1, p2, p3);
+            t.sort()
+            var f = t.processScanLine()
+            do {
+                var p = f.next()
+                if (p.done) {
+                    break;
+                }
+                this.drawBline(p.value.point1, p.value.point2, face_color)
+            } while(!p.done)
+            //draw lines
+            var color = new BABYLON.Color4(1, 0, 0, 1);
+            this.drawBline(p1, p2, color);
+            this.drawBline(p2, p3, color);
+            this.drawBline(p3, p1, color);            
+        }
         Device.prototype.render = function (camera, meshes) {
             var viewMatrix = BABYLON.Matrix.LookAtLH(camera.Position, camera.Target, BABYLON.Vector3.Up());
             var projectionMatrix = BABYLON.Matrix.PerspectiveFovLH(0.78, this.workingWidth / this.workingHeight, 0.01, 1.0);
@@ -103,9 +128,7 @@ var SoftEngine;
                     var pixelA = this.project(vertexA, transformMatrix);
                     var pixelB = this.project(vertexB, transformMatrix);
                     var pixelC = this.project(vertexC, transformMatrix);
-                    this.drawBline(pixelA, pixelB);
-                    this.drawBline(pixelB, pixelC);
-                    this.drawBline(pixelC, pixelA);
+                    this.rasterization(pixelA, pixelB, pixelC)
                 }
             }
         };

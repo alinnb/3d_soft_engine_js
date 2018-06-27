@@ -23,6 +23,21 @@ function init() {
     
     // device.LoadJSONFileAsync("monkey.babylon", loadJSONCompleted);
     loadCube();
+    // loadTrangle();
+}
+
+function loadTrangle() {
+    var mesh = new SoftEngine.Mesh("Trangle", 3, 1);
+    mesh.Vertices[0] = new BABYLON.Vector3(-1, 1, 1);
+    mesh.Vertices[1] = new BABYLON.Vector3(1, 1, 1);
+    mesh.Vertices[2] = new BABYLON.Vector3(-1, -1, 1);
+
+    mesh.Faces[0] = { A : 0, B : 1, C : 2 };
+    meshes.push(mesh);
+
+    requestAnimationFrame(drawingLoop);
+
+    document.onkeydown = rotationZ;
 }
 
 function loadCube() {
@@ -64,11 +79,7 @@ function loadJSONCompleted(meshesLoaded) {
 function drawingLoop() {
     device.clear();
 
-    for (var i = 0; i < meshes.length; i++) {
-        // rotating slightly the mesh during each frame rendered
-        meshes[i].Rotation.x += 0.01;
-        meshes[i].Rotation.y += 0.01;
-    }
+    auto_rotation();
 
     // Doing the various matrix operations
     device.render(mera, meshes);
@@ -77,4 +88,19 @@ function drawingLoop() {
 
     // Calling the HTML5 rendering loop recursively
     requestAnimationFrame(drawingLoop);
+}
+
+function auto_rotation() {
+    for (var i = 0; i < meshes.length; i++) {
+        // rotating slightly the mesh during each frame rendered
+        meshes[i].Rotation.x += 0.01;
+        meshes[i].Rotation.y += 0.01;
+    }
+}
+
+function rotationZ() {
+    for (var i = 0; i < meshes.length; i++) {
+        // rotating slightly the mesh during each frame rendered
+        meshes[i].Rotation.z += 0.01;
+    }
 }
