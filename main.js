@@ -11,7 +11,8 @@ var canvas;
 var fps;
 var device;
 var meshes = [];
-var mera;
+var camera;
+var light;
 var previousDate;
 
 document.addEventListener("DOMContentLoaded", init, false);
@@ -19,41 +20,49 @@ document.addEventListener("DOMContentLoaded", init, false);
 function init() {
     canvas = document.getElementById("frontBuffer");
     fps = document.getElementById("fps");
-    mera = new SoftEngine.Camera();
+
+    camera = new SoftEngine.Camera();
+    camera.Position = new BABYLON.Vector3(0, 0, 10);
+    camera.Target = new BABYLON.Vector3(0, 0, 0);
+
     device = new SoftEngine.Device(canvas);
+
+    light = new SoftEngine.Light();
+    light.Position = new BABYLON.Vector3(0, 100, 0);
+
     previousDate = new Date();
-    mera.Position = new BABYLON.Vector3(0, 0, 10);
-    mera.Target = new BABYLON.Vector3(0, 0, 0);
     
     // device.LoadJSONFileAsync("monkey.babylon", loadJSONCompleted);
     loadCube();
     // loadTrangle();
-}
-
-function loadTrangle() {
-    var mesh = new SoftEngine.Mesh("Trangle", 3, 1);
-    mesh.Vertices[0] = new BABYLON.Vector3(-1, 1, 1);
-    mesh.Vertices[1] = new BABYLON.Vector3(1, 1, 1);
-    mesh.Vertices[2] = new BABYLON.Vector3(-1, -1, 1);
-
-    mesh.Faces[0] = { A : 0, B : 1, C : 2 };
-    meshes.push(mesh);
-
-    requestAnimationFrame(drawingLoop);
 
     document.onkeydown = rotationZ;
 }
 
+function loadTrangle() {
+    var mesh = new SoftEngine.Mesh("Trangle", 3, 1);
+    mesh.Vertices[0] = new Base.Vertex(-1, 1, 1);
+    mesh.Vertices[1] = new Base.Vertex(1, -1, 1);
+    mesh.Vertices[2] = new Base.Vertex(-1, -1, -1);
+
+    mesh.Faces[0] = { A : 0, B : 1, C : 2 };
+
+    mesh.update();
+    meshes.push(mesh);
+
+    requestAnimationFrame(drawingLoop);
+}
+
 function loadCube() {
     var mesh = new SoftEngine.Mesh("Cube", 8, 12);
-    mesh.Vertices[0] = new BABYLON.Vector3(-1, 1, 1);
-    mesh.Vertices[1] = new BABYLON.Vector3(1, 1, 1);
-    mesh.Vertices[2] = new BABYLON.Vector3(-1, -1, 1);
-    mesh.Vertices[3] = new BABYLON.Vector3(1, -1, 1);
-    mesh.Vertices[4] = new BABYLON.Vector3(-1, 1, -1);
-    mesh.Vertices[5] = new BABYLON.Vector3(1, 1, -1);
-    mesh.Vertices[6] = new BABYLON.Vector3(1, -1, -1);
-    mesh.Vertices[7] = new BABYLON.Vector3(-1, -1, -1);
+    mesh.Vertices[0] = new Base.Vertex(-1, 1, 1);
+    mesh.Vertices[1] = new Base.Vertex(1, 1, 1);
+    mesh.Vertices[2] = new Base.Vertex(-1, -1, 1);
+    mesh.Vertices[3] = new Base.Vertex(1, -1, 1);
+    mesh.Vertices[4] = new Base.Vertex(-1, 1, -1);
+    mesh.Vertices[5] = new Base.Vertex(1, 1, -1);
+    mesh.Vertices[6] = new Base.Vertex(1, -1, -1);
+    mesh.Vertices[7] = new Base.Vertex(-1, -1, -1);
 
     mesh.Faces[0] = { A : 0, B : 1, C : 2 };
     mesh.Faces[1] = { A : 1, B : 2, C : 3 };
@@ -68,6 +77,7 @@ function loadCube() {
     mesh.Faces[10] = { A : 4, B : 5, C : 6 };
     mesh.Faces[11] = { A : 4, B : 6, C : 7 };
 
+    mesh.update();
     meshes.push(mesh);
 
     requestAnimationFrame(drawingLoop);
@@ -91,7 +101,7 @@ function drawingLoop() {
     auto_rotation();
 
     // Doing the various matrix operations
-    device.render(mera, meshes);
+    device.render(camera, light, meshes);
     // Flushing the back buffer into the front buffer
     device.present();
 
