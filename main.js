@@ -14,7 +14,7 @@ var camera;
 var light;
 var previousDate;
 var windows_debug = true;
-var triangle_debug = false;
+var triangle_debug = true;
 
 document.addEventListener("DOMContentLoaded", init, false);
 
@@ -66,18 +66,22 @@ function init() {
         var ry = 0;
         var rz = 0;
         if (e.keyCode==81) {//Q
-            rx = 0.01;
-            ry = 0.01;
+            rz = 0.01
         }
         else if (e.keyCode==69) {//E
-            rx = -0.01;
-            ry = -0.01;
+            rz = -0.01
         }
         else if (e.keyCode==65) {//A
-            rz = 0.01;
+            ry = 0.01;
         }
         else if (e.keyCode==68) {//D
-            rz = -0.01;
+            ry = -0.01;
+        }
+        else if (e.keyCode==87) {//W
+            rx = 0.01;
+        }
+        else if (e.keyCode==83) {//S
+            rx = -0.01;
         }
         
         for (var i = 0; i < meshes.length; i++) {
@@ -93,13 +97,13 @@ function loadTrangle() {
     var mesh = new SoftEngine.Mesh("Trangle", 3, 1);
 
     //type1
-    mesh.Vertices[0] = new Base.Vertex(-1, 1, 1);
-    mesh.Vertices[1] = new Base.Vertex(1, -1, 1);
-    mesh.Vertices[2] = new Base.Vertex(-1, -1, -1);
-    //type2
     // mesh.Vertices[0] = new Base.Vertex(-1, 1, 1);
-    // mesh.Vertices[1] = new Base.Vertex(1, 1, 1);
-    // mesh.Vertices[2] = new Base.Vertex(-1, -1, 1);
+    // mesh.Vertices[1] = new Base.Vertex(1, -1, 1);
+    // mesh.Vertices[2] = new Base.Vertex(-1, -1, -1);
+    //type2
+    mesh.Vertices[0] = new Base.Vertex(-1, 1, 0);
+    mesh.Vertices[1] = new Base.Vertex(1, 1, 0);
+    mesh.Vertices[2] = new Base.Vertex(-1, -1, 0);
     //type3
     // mesh.Vertices[0] = new Base.Vertex(-1, 1, -1);
     // mesh.Vertices[1] = new Base.Vertex(1, 1, -1);

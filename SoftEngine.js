@@ -11,10 +11,10 @@ var Base;
             this.id = -1;
         }
 
-        Vertex.prototype.addNormal = function(normal) {
+        Vertex.prototype.addNormal = function (normal) {
             for (var index = 0; index < this.normalVectorList.length; index++) {
                 var n = this.normalVectorList[index];
-                if(n.x == normal.x && n.y == normal.y && n.z == normal.z) {
+                if (n.x == normal.x && n.y == normal.y && n.z == normal.z) {
                     return;
                 }
             }
@@ -39,7 +39,7 @@ var Base;
             return new BABYLON.Vector3.Cross(v12, v23);
         }
 
-        Vertex.prototype.toString = function() {
+        Vertex.prototype.toString = function () {
             return `Vertex(${this.point.x},${this.point.y},${this.point.z})
                 normal(${this.normal.x},${this.normal.y},${this.normal.z})
                 normalInWorld(${this.normalInWorld.x},${this.normalInWorld.y},${this.normalInWorld.z})`
@@ -112,20 +112,30 @@ var Base;
             this.light = light;
             this.color = color;
         }
-
+        Shader.prototype.isClockwise = function () {
+            var v12 = this.v1.projectPoint.subtract(this.v2.projectPoint);
+            var v13 = this.v1.projectPoint.subtract(this.v3.projectPoint);
+            
+            return v12.x * v13.y - v12.y * v13.x > 0;
+        }
         Shader.prototype.computeNDotL = function (vertex, normal, lightPosition) {
             var lightDirection = lightPosition.subtract(vertex);
-        
+
             normal.normalize();
             lightDirection.normalize();
-        
+
             return Math.max(0, BABYLON.Vector3.Dot(normal, lightDirection));
         };
 
-        Shader.prototype.getColor = function() {
-            return this.color;
+        Shader.prototype.getColor = function () {
+            if (this.isClockwise()) {
+                return this.color;
+            }
+            else {
+                return new BABYLON.Color4(1, 0, 1, 1);
+            }
         }
-        
+
         Shader.prototype.getNormal = function () {
             //光线类型
             //1 - 平行光，平面着色
@@ -140,7 +150,7 @@ var Base;
             }
             else if (light.type == 2) {
                 var vnFace = (v1.normalInWorld.add(v2.normalInWorld.add(v3.normalInWorld))).scale(1 / 3);
-                var centerp = (v1.pointInWorld.add(v2.pointInWorld.add(v3.pointInWorld))).scale(1/3);
+                var centerp = (v1.pointInWorld.add(v2.pointInWorld.add(v3.pointInWorld))).scale(1 / 3);
                 var ndotl = this.computeNDotL(new BABYLON.Vector3.Zero(), vnFace, light.Position);
             }
             else if (light.type == 3) {
@@ -148,12 +158,12 @@ var Base;
                 var nl2 = this.computeNDotL(vertexList[1].pointInWorld, vertexList[1].normalInWorld, light.Position);
                 var nl3 = this.computeNDotL(vertexList[2].pointInWorld, vertexList[2].normalInWorld, light.Position);
             }
-            
+
             var p1w = v1.pointInWorld;
             var p2w = v2.pointInWorld;
             var p3w = v3.pointInWorld;
             var p4w = v4.pointInWorld;
-            if(normal_data.type == 1) {
+            if (normal_data.type == 1) {
 
             }
             else {
@@ -178,7 +188,7 @@ var Base;
                 var z3 = Math.max(0, BABYLON.Vector3.Dot(v3.normalInWorld, light3));
                 var z4 = Math.max(0, BABYLON.Vector3.Dot(v4.normalInWorld, light4));
             }
-            if(normal_data.type != 1) {
+            if (normal_data.type != 1) {
                 var slightx = this.interpolate(light1.x, light2.x, p1.y, p2.y, y);
                 var slighty = this.interpolate(light1.y, light2.y, p1.y, p2.y, y);
                 var slightz = this.interpolate(light1.z, light2.z, p1.y, p2.y, y);
@@ -195,7 +205,7 @@ var Base;
                 var enz = this.interpolate(n3.z, n4.z, p3.y, p4.y, y);
             }
 
-            if(normal_data.type == 1) {
+            if (normal_data.type == 1) {
                 n = normal_data.normal;
             }
             else {
@@ -205,7 +215,7 @@ var Base;
                 var nx = this.interpolate(snx, enx, sx, ex, x);
                 var ny = this.interpolate(sny, eny, sx, ex, x);
                 var nz = this.interpolate(snz, enz, sx, ex, x);
-                var n = Math.max(0, BABYLON.Vector3.Dot(new BABYLON.Vector3(lightx,lighty,lightz), new BABYLON.Vector3(nx,ny,nz)));
+                var n = Math.max(0, BABYLON.Vector3.Dot(new BABYLON.Vector3(lightx, lighty, lightz), new BABYLON.Vector3(nx, ny, nz)));
             }
         }
 
@@ -429,8 +439,8 @@ var SoftEngine;
 
                 var ex = this.interpolate(p3.x, p4.x, p3.y, p4.y, y);
                 var ez = this.interpolate(p3.z, p4.z, p3.y, p4.y, y);
-                
-                if(sx < ex) {
+
+                if (sx < ex) {
                     for (var x = sx; x < ex; x++) {
                         var z = this.interpolate(sz, ez, sx, ex, x);
                         var color = shader.getColor();
@@ -458,7 +468,7 @@ var SoftEngine;
             var p1 = vertexList[0].projectPoint;
             var p2 = vertexList[1].projectPoint;
             var p3 = vertexList[2].projectPoint;
-            
+
             //一共4种三角
             // TYPE1                 TYPE2：           TYPE3          TYPE4
             // P1 .......... P2       P1 .            P1  .            P1 .
