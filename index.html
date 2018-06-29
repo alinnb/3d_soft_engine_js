@@ -3,22 +3,35 @@
 
 <head>
     <title>3D Soft Engine using HTML5 Canvas</title>
-    <style>
-        canvas {
-            width: 640px;
-            height: 480px;
-        }
-    </style>
     <script src="babylon.math.js"></script>
     <script src="SoftEngine.js"></script>
     <script src="main.js"></script>
     <style>
-        .canvas {
-            position: fixed;
+        canvas {
+            position: relative;
+            margin: 0;
+            border: 0;
+            width: 500 px;
+            height: 450 px;
             background-color: black;
         }
-        .fps {
+
+        section {
             position: relative;
+            top: 0;
+            left: 0;
+        }
+        .fix {
+            position: relative;
+            top: 0;
+            left: 0;
+        }
+        .axis {
+            background-color: gray;
+        }
+
+        #fps {
+            position: fixed;
             top: 0;
             right: 0;
             color: red;
@@ -27,8 +40,13 @@
 </head>
 
 <body>
-    <canvas id="frontBuffer" class='canvas' width="640" height="480"></canvas>
-    <section id="fps" class='fps'>60fps</section>
+    <div class="fix">
+        <canvas id="main" width="500" height="450"></canvas>
+        <canvas id="axis-xy" class="axis" width="500" height="450"></canvas>
+        <canvas id="axis-yz" class="axis" width="500" height="450"></canvas>
+        <canvas id="axis-xz" class="axis" width="500" height="450"></canvas>
+    </div>
+    <section id="fps">60fps</section>
 </body>
 
 </html>
