@@ -14,7 +14,7 @@ var camera;
 var light;
 var previousDate;
 var windows_debug = true;
-var mesh_type = 3;//0-monkey,1-cube,2-triangle,3-face
+var mesh_type = 0;//0-monkey,1-cube,2-triangle,3-face
 var auto_move = false;
 
 document.addEventListener("DOMContentLoaded", init, false);
@@ -66,38 +66,7 @@ function init() {
             break;
     }
 
-    document.onkeydown = function (event) {
-        var e = event || window.event || arguments.callee.caller.arguments[0];
-
-        var rx = 0;
-        var ry = 0;
-        var rz = 0;
-        if (e.keyCode == 81) {//Q
-            rz = 0.01
-        }
-        else if (e.keyCode == 69) {//E
-            rz = -0.01
-        }
-        else if (e.keyCode == 65) {//A
-            ry = 0.01;
-        }
-        else if (e.keyCode == 68) {//D
-            ry = -0.01;
-        }
-        else if (e.keyCode == 87) {//W
-            rx = 0.01;
-        }
-        else if (e.keyCode == 83) {//S
-            rx = -0.01;
-        }
-
-        for (var i = 0; i < meshes.length; i++) {
-            // rotating slightly the mesh during each frame rendered
-            meshes[i].Rotation.x += rx;
-            meshes[i].Rotation.y += ry;
-            meshes[i].Rotation.z += rz;
-        }
-    };
+    document.onkeydown = rotation;
 }
 
 function loadJSONCompleted(meshesLoaded) {
@@ -105,11 +74,9 @@ function loadJSONCompleted(meshesLoaded) {
     for (var i in meshes) {
         meshes[i].update();
     }
-    // Calling the HTML5 rendering loop
     requestAnimationFrame(drawingLoop);
 }
 
-// Rendering loop handler
 function drawingLoop() {
     var now = new Date();
     var currentFps = 1000.0 / (now.getMilliseconds() - previousDate.getMilliseconds());
@@ -127,6 +94,39 @@ function drawingLoop() {
     }
 
     requestAnimationFrame(drawingLoop);
+}
+
+function rotation(event) {
+    var e = event || window.event || arguments.callee.caller.arguments[0];
+
+    var rx = 0;
+    var ry = 0;
+    var rz = 0;
+    if (e.keyCode == 81) {//Q
+        rz = 0.01
+    }
+    else if (e.keyCode == 69) {//E
+        rz = -0.01
+    }
+    else if (e.keyCode == 65) {//A
+        ry = 0.01;
+    }
+    else if (e.keyCode == 68) {//D
+        ry = -0.01;
+    }
+    else if (e.keyCode == 87) {//W
+        rx = 0.01;
+    }
+    else if (e.keyCode == 83) {//S
+        rx = -0.01;
+    }
+
+    for (var i = 0; i < meshes.length; i++) {
+        // rotating slightly the mesh during each frame rendered
+        meshes[i].Rotation.x += rx;
+        meshes[i].Rotation.y += ry;
+        meshes[i].Rotation.z += rz;
+    }
 }
 
 function auto_rotation() {

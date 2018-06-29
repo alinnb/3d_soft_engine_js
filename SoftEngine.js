@@ -140,7 +140,7 @@ var Base;
         Shader.prototype.getColor = function () {
             //背部用紫色
             if (this.isClockwise()) {
-                return new BABYLON.Color4(1, 0, 1, 1);
+                // return new BABYLON.Color4(1, 0, 1, 1);
                 return null;
             }
 
