@@ -1,11 +1,11 @@
 window.requestAnimationFrame = (function () {
-   return window.requestAnimationFrame ||
-         window.webkitRequestAnimationFrame ||
-         window.mozRequestAnimationFrame ||
-         function (callback) {
-             window.setTimeout(callback, 1000 / 60);
-         };
-     })();
+    return window.requestAnimationFrame ||
+        window.webkitRequestAnimationFrame ||
+        window.mozRequestAnimationFrame ||
+        function (callback) {
+            window.setTimeout(callback, 1000 / 60);
+        };
+})();
 
 var fps;
 var devices = [];
@@ -14,13 +14,14 @@ var camera;
 var light;
 var previousDate;
 var windows_debug = true;
-var triangle_debug = true;
+var mesh_type = 3;//0-monkey,1-cube,2-triangle,3-face
+var auto_move = false;
 
 document.addEventListener("DOMContentLoaded", init, false);
 
 function init() {
     fps = document.getElementById("fps");
-    
+
     var distance = 8;
     var main_canvas = document.getElementById("main");
     var main_camera = new SoftEngine.Camera(new BABYLON.Vector3(0, distance, -distance), new BABYLON.Vector3(0, 0, 0));
@@ -46,44 +47,50 @@ function init() {
     }
 
     light = new SoftEngine.Light();
-    light.Position = new BABYLON.Vector3(0, 2, 0);
+    light.Position = new BABYLON.Vector3(0, 2, -2);
 
     previousDate = new Date();
-    
-    // SoftEngine.Mesh.LoadJSONFileAsync("monkey.babylon", loadJSONCompleted);
-    if(triangle_debug) {
-        // loadTrangle();
-        loadFace();
-    }
-    else {
-        loadCube();
+
+    switch (mesh_type) {
+        case 0:
+            SoftEngine.Mesh.LoadJSONFileAsync("monkey.babylon", loadJSONCompleted);
+            break;
+        case 1:
+            loadCube();
+            break;
+        case 2:
+            loadTrangle();
+            break;
+        case 3:
+            loadFace();
+            break;
     }
 
-    document.onkeydown = function(event) {
+    document.onkeydown = function (event) {
         var e = event || window.event || arguments.callee.caller.arguments[0];
 
         var rx = 0;
         var ry = 0;
         var rz = 0;
-        if (e.keyCode==81) {//Q
+        if (e.keyCode == 81) {//Q
             rz = 0.01
         }
-        else if (e.keyCode==69) {//E
+        else if (e.keyCode == 69) {//E
             rz = -0.01
         }
-        else if (e.keyCode==65) {//A
+        else if (e.keyCode == 65) {//A
             ry = 0.01;
         }
-        else if (e.keyCode==68) {//D
+        else if (e.keyCode == 68) {//D
             ry = -0.01;
         }
-        else if (e.keyCode==87) {//W
+        else if (e.keyCode == 87) {//W
             rx = 0.01;
         }
-        else if (e.keyCode==83) {//S
+        else if (e.keyCode == 83) {//S
             rx = -0.01;
         }
-        
+
         for (var i = 0; i < meshes.length; i++) {
             // rotating slightly the mesh during each frame rendered
             meshes[i].Rotation.x += rx;
@@ -91,6 +98,42 @@ function init() {
             meshes[i].Rotation.z += rz;
         }
     };
+}
+
+function loadJSONCompleted(meshesLoaded) {
+    meshes = meshesLoaded;
+    for (var i in meshes) {
+        meshes[i].update();
+    }
+    // Calling the HTML5 rendering loop
+    requestAnimationFrame(drawingLoop);
+}
+
+// Rendering loop handler
+function drawingLoop() {
+    var now = new Date();
+    var currentFps = 1000.0 / (now.getMilliseconds() - previousDate.getMilliseconds());
+    previousDate = now;
+    fps.innerHTML = Math.floor(currentFps) + 'fps'
+
+    for (var i in devices) {
+        devices[i].clear();
+        devices[i].render(light, meshes);
+        devices[i].present();
+    }
+
+    if (auto_move) {
+        auto_rotation();
+    }
+
+    requestAnimationFrame(drawingLoop);
+}
+
+function auto_rotation() {
+    for (var i = 0; i < meshes.length; i++) {
+        meshes[i].Rotation.x += 0.01;
+        meshes[i].Rotation.y += 0.01;
+    }
 }
 
 function loadTrangle() {
@@ -109,7 +152,7 @@ function loadTrangle() {
     // mesh.Vertices[1] = new Base.Vertex(1, 1, -1);
     // mesh.Vertices[2] = new Base.Vertex(-1, -1, -1);
 
-    mesh.Faces[0] = { A : 0, B : 1, C : 2 };
+    mesh.Faces[0] = { A: 0, B: 2, C: 1 };//逆时针
 
     mesh.update();
     meshes.push(mesh);
@@ -138,8 +181,8 @@ function loadFace() {
     mesh.Vertices[2].id = 2;
     mesh.Vertices[3].id = 3;
 
-    mesh.Faces[0] = { A : 0, B : 1, C : 2 };
-    mesh.Faces[1] = { A : 0, B : 2, C : 3 };
+    mesh.Faces[0] = { A: 0, B: 2, C: 1 };//逆时针
+    mesh.Faces[1] = { A: 0, B: 3, C: 2 };//逆时针
 
     mesh.update();
     meshes.push(mesh);
@@ -166,65 +209,21 @@ function loadCube() {
     mesh.Vertices[6].id = 6;
     mesh.Vertices[7].id = 7;
 
-    // mesh.Faces[0] = { A : 0, B : 1, C : 2 };//逆时针 0,2,1
-    // mesh.Faces[1] = { A : 1, B : 2, C : 3 };//顺时针
-    // mesh.Faces[2] = { A : 1, B : 3, C : 6 };//顺时针
-    // mesh.Faces[3] = { A : 1, B : 5, C : 6 };//逆时针
-    // mesh.Faces[4] = { A : 0, B : 1, C : 4 };//顺时针
-    // mesh.Faces[5] = { A : 1, B : 4, C : 5 };//逆时针
-    // mesh.Faces[6] = { A : 2, B : 3, C : 7 };//逆时针
-    // mesh.Faces[7] = { A : 3, B : 6, C : 7 };//逆时针
-    // mesh.Faces[8] = { A : 0, B : 2, C : 7 };//逆时针
-    // mesh.Faces[9] = { A : 0, B : 4, C : 7 };//顺时针
-    // mesh.Faces[10] = { A : 4, B : 5, C : 6 };//顺时针
-    // mesh.Faces[11] = { A : 4, B : 6, C : 7 };//顺时针
-    mesh.Faces[0] = { A : 0, B : 2, C : 1 };//顺时针
-    mesh.Faces[1] = { A : 1, B : 2, C : 3 };//顺时针
-    mesh.Faces[2] = { A : 1, B : 3, C : 6 };//顺时针
-    mesh.Faces[3] = { A : 1, B : 6, C : 5 };//顺时针
-    mesh.Faces[4] = { A : 0, B : 1, C : 4 };//顺时针
-    mesh.Faces[5] = { A : 1, B : 5, C : 4 };//顺时针
-    mesh.Faces[6] = { A : 2, B : 7, C : 3 };//顺时针
-    mesh.Faces[7] = { A : 3, B : 7, C : 6 };//顺时针
-    mesh.Faces[8] = { A : 0, B : 7, C : 2 };//顺时针
-    mesh.Faces[9] = { A : 0, B : 4, C : 7 };//顺时针
-    mesh.Faces[10] = { A : 4, B : 5, C : 6 };//顺时针
-    mesh.Faces[11] = { A : 4, B : 6, C : 7 };//顺时针
+    mesh.Faces[0] = { A: 0, B: 1, C: 2 };//逆时针
+    mesh.Faces[1] = { A: 1, B: 3, C: 2 };//逆时针
+    mesh.Faces[2] = { A: 1, B: 6, C: 3 };//逆时针
+    mesh.Faces[3] = { A: 1, B: 5, C: 6 };//逆时针
+    mesh.Faces[4] = { A: 0, B: 4, C: 1 };//逆时针
+    mesh.Faces[5] = { A: 1, B: 4, C: 5 };//逆时针
+    mesh.Faces[6] = { A: 2, B: 3, C: 7 };//逆时针
+    mesh.Faces[7] = { A: 3, B: 6, C: 7 };//逆时针
+    mesh.Faces[8] = { A: 0, B: 2, C: 7 };//逆时针
+    mesh.Faces[9] = { A: 0, B: 7, C: 4 };//逆时针
+    mesh.Faces[10] = { A: 4, B: 6, C: 5 };//逆时针
+    mesh.Faces[11] = { A: 4, B: 7, C: 6 };//逆时针
 
     mesh.update();
     meshes.push(mesh);
 
     requestAnimationFrame(drawingLoop);
-}
-
-function loadJSONCompleted(meshesLoaded) {
-    meshes = meshesLoaded;
-    for(var i in meshes) {
-        meshes[i].update();
-    }
-    // Calling the HTML5 rendering loop
-    requestAnimationFrame(drawingLoop);
-}
-
-// Rendering loop handler
-function drawingLoop() {
-    var now = new Date();
-    var currentFps = 1000.0 / (now.getMilliseconds() - previousDate.getMilliseconds());
-    previousDate = now;
-    fps.innerHTML = Math.floor(currentFps) + 'fps'
-
-    for(var i in devices) {
-        devices[i].clear();
-        devices[i].render(light, meshes);
-        devices[i].present();
-    }
-
-    requestAnimationFrame(drawingLoop);
-}
-
-function auto_rotation() {
-    for (var i = 0; i < meshes.length; i++) {
-        meshes[i].Rotation.x += 0.01;
-        meshes[i].Rotation.y += 0.01;
-    }
 }

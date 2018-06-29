@@ -111,12 +111,22 @@ var Base;
             this.v3 = v3;
             this.light = light;
             this.color = color;
+            //三点组成的面的法线
+            this.face_normal = Base.Vertex.normalVector(v1.pointInWorld, v2.pointInWorld, v3.pointInWorld);
+            //光线类型
+            //0 - 固定颜色
+            //1 - 平行光，平面着色
+            //2 - 平行光，高氏着色
+            //3 - 点光源，高氏着色
+            if (light.type == 1) {
+                this.normal = this.computeNDotL(this.light.Position, this.face_normal, new BABYLON.Vector3.Zero());
+            }
         }
         Shader.prototype.isClockwise = function () {
             var v12 = this.v1.projectPoint.subtract(this.v2.projectPoint);
             var v13 = this.v1.projectPoint.subtract(this.v3.projectPoint);
             
-            return v12.x * v13.y - v12.y * v13.x > 0;
+            return v12.x * v13.y - v12.y * v13.x >= 0;
         }
         Shader.prototype.computeNDotL = function (vertex, normal, lightPosition) {
             var lightDirection = lightPosition.subtract(vertex);
@@ -128,12 +138,21 @@ var Base;
         };
 
         Shader.prototype.getColor = function () {
+            //背部用紫色
             if (this.isClockwise()) {
-                return this.color;
-            }
-            else {
                 return new BABYLON.Color4(1, 0, 1, 1);
+                return null;
             }
+
+            switch(this.light.type) {
+                case 1:
+                    return new BABYLON.Color4(
+                        this.color.r * this.normal, 
+                        this.color.g * this.normal,
+                        this.color.b * this.normal, 1)
+            }
+            
+            return this.color;
         }
 
         Shader.prototype.getNormal = function () {
@@ -381,6 +400,9 @@ var SoftEngine;
             vertex.normalInWorld = BABYLON.Vector3.TransformCoordinates(vertex.normal, worldMat);
         };
         Device.prototype.drawPoint = function (point, color) {
+            if (!color) {
+                return;
+            }
             if (point.x >= 0 && point.y >= 0 && point.x < this.workingWidth && point.y < this.workingHeight) {
                 this.putPixel(point.x, point.y, point.z, color);
             }
@@ -502,10 +524,10 @@ var SoftEngine;
             }
 
             //draw face
-            var border_color = new BABYLON.Color4(1, 0, 0, 1);
-            this.drawLine(p1, p2, border_color);
-            this.drawLine(p2, p3, border_color);
-            this.drawLine(p3, p1, border_color);
+            // var border_color = new BABYLON.Color4(1, 0, 0, 1);
+            // this.drawLine(p1, p2, border_color);
+            // this.drawLine(p2, p3, border_color);
+            // this.drawLine(p3, p1, border_color);
         }
         Device.prototype.render = function (light, meshes) {
             var viewMatrix = BABYLON.Matrix.LookAtLH(this.camera.Position, this.camera.Target, BABYLON.Vector3.Up());
@@ -522,7 +544,7 @@ var SoftEngine;
                     this.project(v1, transformMatrix, worldMatrix);
                     this.project(v2, transformMatrix, worldMatrix);
                     this.project(v3, transformMatrix, worldMatrix);
-                    var shader = new Base.Shader(v1, v2, v3, light, new BABYLON.Color4(1, 1, 0, 1));
+                    var shader = new Base.Shader(v1, v2, v3, light, new BABYLON.Color4(1, 1, 1, 1));
                     this.drawTriangle(v1, v2, v3, shader);
 
                     // if(this.camera.Position.x == 0 && this.camera.Position.y == 0) {
