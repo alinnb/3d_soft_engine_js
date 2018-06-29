@@ -125,7 +125,7 @@ var Base;
         Shader.prototype.isClockwise = function () {
             var v12 = this.v1.projectPoint.subtract(this.v2.projectPoint);
             var v13 = this.v1.projectPoint.subtract(this.v3.projectPoint);
-            
+
             return v12.x * v13.y - v12.y * v13.x >= 0;
         }
         Shader.prototype.computeNDotL = function (vertex, normal, lightPosition) {
@@ -137,21 +137,29 @@ var Base;
             return Math.max(0, BABYLON.Vector3.Dot(normal, lightDirection));
         };
 
-        Shader.prototype.getColor = function () {
+        Shader.prototype.getColor = function (isBorder) {
             //背部用紫色
             if (this.isClockwise()) {
                 // return new BABYLON.Color4(1, 0, 1, 1);
                 return null;
             }
 
-            switch(this.light.type) {
+            if (this.light.drawBorder && isBorder) {
+                return new BABYLON.Color4(1, 0, 0, 1);
+            }
+
+            switch (this.light.type) {
+                case 0:
+                    return this.color;
+
+                //1 - 平行光，平面着色
                 case 1:
                     return new BABYLON.Color4(
-                        this.color.r * this.normal, 
+                        this.color.r * this.normal,
                         this.color.g * this.normal,
                         this.color.b * this.normal, 1)
             }
-            
+
             return this.color;
         }
 
@@ -251,6 +259,7 @@ var SoftEngine;
     var Light = (function () {
         function Light() {
             this.Position = BABYLON.Vector3.Zero();
+            this.drawBorder = false;
             this.type = 1; //平行光,"directional_ight"
         }
         return Light;
@@ -415,7 +424,8 @@ var SoftEngine;
                 if (p.done) {
                     break;
                 }
-                this.drawPoint(p.value, color);
+                p.z =
+                    this.drawPoint(p.value, color);
             }
             while (!p.done)
         }
@@ -449,30 +459,34 @@ var SoftEngine;
             var delta_b = b_end - b_start;
             return (b - b_start) * delta_a / delta_b + a_start;
         }
-        Device.prototype.processScanTriangle = function (v1, v2, v3, v4, shader) {
+        Device.prototype.processScanTriangle = function (v1, v2, v3, v4, shader, border) {
             var p1 = v1.projectPoint;
             var p2 = v2.projectPoint;
             var p3 = v3.projectPoint;
             var p4 = v4.projectPoint;
 
-            for (var y = p1.y; y < p2.y; y += 1) {
-                var sx = this.interpolate(p1.x, p2.x, p1.y, p2.y, y);
+            var sy = Math.round(p1.y)
+            var ey = Math.round(p2.y)
+            for (var y = sy; y <= ey; y += 1) {
+                var sx = Math.round(this.interpolate(p1.x, p2.x, p1.y, p2.y, y));
                 var sz = this.interpolate(p1.z, p2.z, p1.y, p2.y, y);
 
-                var ex = this.interpolate(p3.x, p4.x, p3.y, p4.y, y);
+                var ex = Math.round(this.interpolate(p3.x, p4.x, p3.y, p4.y, y));
                 var ez = this.interpolate(p3.z, p4.z, p3.y, p4.y, y);
 
                 if (sx < ex) {
-                    for (var x = sx; x < ex; x++) {
+                    for (var x = sx; x <= ex; x++) {
                         var z = this.interpolate(sz, ez, sx, ex, x);
-                        var color = shader.getColor();
+                        var bDraw = (x == sx || x == ex || (y == sy && border != 2) || (y == ey && border != 1))
+                        var color = shader.getColor(bDraw);
                         this.drawPoint(new BABYLON.Vector3(x, y, z), color);
                     }
                 }
                 else {
-                    for (var x = sx; x > ex; x--) {
+                    for (var x = sx; x >= ex; x--) {
                         var z = this.interpolate(sz, ez, sx, ex, x);
-                        var color = shader.getColor();
+                        var bDraw = (x == sx || x == ex || (y == sy && border != 2) || (y == ey && border != 1))
+                        var color = shader.getColor(bDraw);
                         this.drawPoint(new BABYLON.Vector3(x, y, z), color);
                     }
                 }
@@ -502,10 +516,10 @@ var SoftEngine;
             // if true, p2 on right of p1p3, else p2 on left
             var type = 0;
             if (p1.y == p2.y) {
-                this.processScanTriangle(vertexList[0], vertexList[2], vertexList[1], vertexList[2], shader);
+                this.processScanTriangle(vertexList[0], vertexList[2], vertexList[1], vertexList[2], shader, 0);
             }
             else if (p3.y == p2.y) {
-                this.processScanTriangle(vertexList[0], vertexList[2], vertexList[0], vertexList[1], shader);
+                this.processScanTriangle(vertexList[0], vertexList[2], vertexList[0], vertexList[1], shader, 0);
             }
             else {
                 var dP1P2 = (p2.x - p1.x) / (p2.y - p1.y)
@@ -514,20 +528,14 @@ var SoftEngine;
                 var v = this.interpolateP3byP1P2(vertexList[0], vertexList[2], p2.y)
                 var p = v.projectPoint;
                 if (dP1P2 > dP1P3) { //type 4
-                    this.processScanTriangle(vertexList[0], v, vertexList[0], vertexList[1], shader);
-                    this.processScanTriangle(v, vertexList[2], vertexList[1], vertexList[2], shader);
+                    this.processScanTriangle(vertexList[0], v, vertexList[0], vertexList[1], shader, 1);
+                    this.processScanTriangle(v, vertexList[2], vertexList[1], vertexList[2], shader, 2);
                 }
                 else { //type3
-                    this.processScanTriangle(vertexList[0], vertexList[1], vertexList[0], v, shader);
-                    this.processScanTriangle(vertexList[1], vertexList[2], v, vertexList[2], shader);
+                    this.processScanTriangle(vertexList[0], vertexList[1], vertexList[0], v, shader, 1);
+                    this.processScanTriangle(vertexList[1], vertexList[2], v, vertexList[2], shader, 2);
                 }
             }
-
-            //draw face
-            // var border_color = new BABYLON.Color4(1, 0, 0, 1);
-            // this.drawLine(p1, p2, border_color);
-            // this.drawLine(p2, p3, border_color);
-            // this.drawLine(p3, p1, border_color);
         }
         Device.prototype.render = function (light, meshes) {
             var viewMatrix = BABYLON.Matrix.LookAtLH(this.camera.Position, this.camera.Target, BABYLON.Vector3.Up());

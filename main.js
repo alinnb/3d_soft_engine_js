@@ -13,9 +13,10 @@ var meshes = [];
 var camera;
 var light;
 var previousDate;
-var windows_debug = true;
-var mesh_type = 0;//0-monkey,1-cube,2-triangle,3-face
+var windows_debug = false;
+var mesh_type = 2;//0-monkey,1-cube,2-triangle,3-face
 var auto_move = false;
+var draw_border = true;
 
 document.addEventListener("DOMContentLoaded", init, false);
 
@@ -36,18 +37,19 @@ function init() {
         devices.push(xy_device);
         //yz axis
         var yz_canvas = document.getElementById("axis-yz");
-        var yz_camera = new SoftEngine.Camera(new BABYLON.Vector3(-distance, 0, 0), new BABYLON.Vector3(0, 0, 0));
+        var yz_camera = new SoftEngine.Camera(new BABYLON.Vector3(distance, 0, 0), new BABYLON.Vector3(0, 0, 0));
         var yz_device = new SoftEngine.Device(yz_canvas, yz_camera);
         devices.push(yz_device);
         //xz axis
         var xz_canvas = document.getElementById("axis-xz");
-        var xz_camera = new SoftEngine.Camera(new BABYLON.Vector3(0, -distance, 1), new BABYLON.Vector3(0, 0, 0));
+        var xz_camera = new SoftEngine.Camera(new BABYLON.Vector3(0, distance, 1), new BABYLON.Vector3(0, 0, 0));
         var xz_device = new SoftEngine.Device(xz_canvas, xz_camera);
         devices.push(xz_device);
     }
 
     light = new SoftEngine.Light();
     light.Position = new BABYLON.Vector3(0, 2, -2);
+    light.drawBorder = draw_border;
 
     previousDate = new Date();
 
