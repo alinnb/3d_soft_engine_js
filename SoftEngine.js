@@ -8,7 +8,7 @@ var Base;
             this.projectPoint;//投影在摄像机上的平面坐标
             this.normalInWorld;//在世界坐标系上的法线矢量
             this.pointInWorld;//点在世界坐标系上的坐标
-            this.lightVector;//到光源的矢量
+            this.pointInWorldToLightVector;//到光源的矢量
             this.id = -1;
         }
 
@@ -32,6 +32,10 @@ var Base;
             this.normal.x /= this.normalVectorList.length;
             this.normal.y /= this.normalVectorList.length;
             this.normal.z /= this.normalVectorList.length;
+        }
+
+        Vertex.prototype.updateLight = function(light) {
+            this.pointInWorldToLightVector = this.pointInWorld.subtract(light.Position); 
         }
 
         Vertex.normalVector = function (point1, point2, point3) {
@@ -114,6 +118,10 @@ var Base;
             this.color = color;
             //三点组成的面的法线
             this.face_normal = Base.Vertex.normalVector(v1.pointInWorld, v2.pointInWorld, v3.pointInWorld);
+            //计算v1坐标到光源的矢量
+            this.v1.updateLight(light);
+            this.v2.updateLight(light);
+            this.v3.updateLight(light);
         }
         Shader.prototype.isClockwise = function () {
             var v12 = this.v1.projectPoint.subtract(this.v2.projectPoint);
@@ -137,7 +145,11 @@ var Base;
             var x = this.interpolate(va.normalInWorld.x, vb.normalInWorld.x, p);
             var y = this.interpolate(va.normalInWorld.y, vb.normalInWorld.y, p);
             var z = this.interpolate(va.normalInWorld.z, vb.normalInWorld.z, p);
+            var lx = this.interpolate(va.pointInWorldToLightVector.x, vb.pointInWorldToLightVector.x, p);
+            var ly = this.interpolate(va.pointInWorldToLightVector.y, vb.pointInWorldToLightVector.y, p);
+            var lz = this.interpolate(va.pointInWorldToLightVector.z, vb.pointInWorldToLightVector.z, p);
             v.normalInWorld = new BABYLON.Vector3(x,y,z);
+            v.pointInWorldToLightVector = new BABYLON.Vector3(lx,ly,lz);
             return v;
         }
         Shader.prototype.getColor = function (va,vb,vc,vd,ix,iy, bDrawBorder) {
@@ -171,7 +183,18 @@ var Base;
                     var nex = this.interpolateNormal(vc, vd, iy);
                     var n = this.interpolateNormal(nsx, nex, ix);
                     var ndotl = this.computeNDotL(n.normalInWorld, this.light.directionalLightVector());
-                    // console.log(iy,ix,ndotl);
+                    return new BABYLON.Color4(
+                        this.color.r * ndotl,
+                        this.color.g * ndotl,
+                        this.color.b * ndotl, 1);
+                        
+                //3 - 点光源，高氏着色
+                case 3:
+                    //normal in vertex
+                    var nsx = this.interpolateNormal(va, vb, iy);
+                    var nex = this.interpolateNormal(vc, vd, iy);
+                    var n = this.interpolateNormal(nsx, nex, ix);
+                    var ndotl = this.computeNDotL(n.normalInWorld, n.pointInWorldToLightVector);
                     return new BABYLON.Color4(
                         this.color.r * ndotl,
                         this.color.g * ndotl,
@@ -376,6 +399,8 @@ var SoftEngine;
             var p2w = v2.pointInWorld;
             var n1 = v1.normalInWorld;
             var n2 = v2.normalInWorld;
+            var l1 = v1.pointInWorldToLightVector;
+            var l2 = v2.pointInWorldToLightVector;
 
             var x = this.interpolate(p1.x, p2.x, p1.y, p2.y, y);
             var z = this.interpolate(p1.z, p2.z, p1.y, p2.y, y);
@@ -385,11 +410,15 @@ var SoftEngine;
             var wx = this.interpolate(p1w.x, p2w.x, p1.y, p2.y, y);
             var wy = this.interpolate(p1w.y, p2w.y, p1.y, p2.y, y);
             var wz = this.interpolate(p1w.z, p2w.z, p1.y, p2.y, y);
+            var lx = this.interpolate(l1.x, l2.x, p1.y, p2.y, y);
+            var ly = this.interpolate(l1.y, l2.y, p1.y, p2.y, y);
+            var lz = this.interpolate(l1.z, l2.z, p1.y, p2.y, y);
 
             var vertex = new Base.Vertex(0, 0, 0);
             vertex.normalInWorld = new BABYLON.Vector3(nx, ny, nz);
             vertex.projectPoint = new BABYLON.Vector3(x, y, z);
             vertex.pointInWorld = new BABYLON.Vector3(wx, wy, wz);
+            vertex.pointInWorldToLightVector = new BABYLON.Vector3(lx, ly, lz);
 
             return vertex;
         }
