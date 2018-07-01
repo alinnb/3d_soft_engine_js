@@ -425,7 +425,7 @@ var SoftEngine;
         Device.prototype.interpolate = function (a_start, a_end, b_start, b_end, b) {
             var delta_a = a_end - a_start;
             var delta_b = b_end - b_start;
-            return (b - b_start) * delta_a / delta_b + a_start;
+            return (delta_b == 0 ? 0 : (b - b_start) * delta_a / delta_b) + a_start;
         }
         Device.prototype.processScanTriangle = function (v1, v2, v3, v4, shader, border) {
             var p1 = v1.projectPoint;
