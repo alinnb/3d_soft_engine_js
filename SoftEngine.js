@@ -114,17 +114,6 @@ var Base;
             this.color = color;
             //三点组成的面的法线
             this.face_normal = Base.Vertex.normalVector(v1.pointInWorld, v2.pointInWorld, v3.pointInWorld);
-            //光线类型
-            //0 - 固定颜色
-            //1 - 平行光，平面着色
-            //2 - 平行光，高氏着色
-            //3 - 点光源，高氏着色
-            if (light.type == 1 && light.type == 2) {
-                this.normal = this.computeNDotL(this.face_normal, this.light.directionalLightVector());
-            }
-            else if(light.type == 3) {
-
-            }
         }
         Shader.prototype.isClockwise = function () {
             var v12 = this.v1.projectPoint.subtract(this.v2.projectPoint);
@@ -138,7 +127,7 @@ var Base;
 
             var dot = BABYLON.Vector3.Dot(normal, lightVector);
 
-            return Math.min(1, Math.max(0, dot));
+            return Math.max(0, dot);
         };
         Shader.prototype.interpolate = function(start,end,x) {
             return start + (end - start) * x;
@@ -169,10 +158,11 @@ var Base;
 
                 //1 - 平行光，平面着色
                 case 1:
+                    var ndotl = this.computeNDotL(this.face_normal, this.light.directionalLightVector());
                     return new BABYLON.Color4(
-                        this.color.r * this.normal,
-                        this.color.g * this.normal,
-                        this.color.b * this.normal, 1);
+                        this.color.r * ndotl,
+                        this.color.g * ndotl,
+                        this.color.b * ndotl, 1);
 
                 //2 - 平行光，高氏着色
                 case 2:
