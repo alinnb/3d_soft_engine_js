@@ -13,10 +13,10 @@ var meshes = [];
 var camera;
 var light;
 var previousDate;
-var windows_debug = false;
-var mesh_type = 2;//0-monkey,1-cube,2-triangle,3-face
+var windows_debug = true;
+var mesh_type = 1;//0-monkey,1-cube,2-triangle,3-face
 var auto_move = false;
-var draw_border = true;
+var draw_border = false;
 
 document.addEventListener("DOMContentLoaded", init, false);
 
@@ -48,8 +48,9 @@ function init() {
     }
 
     light = new SoftEngine.Light();
-    light.Position = new BABYLON.Vector3(0, 2, -2);
+    light.Position = new BABYLON.Vector3(0, 1.5, -2);
     light.drawBorder = draw_border;
+    light.type = 2;
 
     previousDate = new Date();
 
@@ -142,13 +143,13 @@ function loadTrangle() {
     var mesh = new SoftEngine.Mesh("Trangle", 3, 1);
 
     //type1
-    // mesh.Vertices[0] = new Base.Vertex(-1, 1, 1);
-    // mesh.Vertices[1] = new Base.Vertex(1, -1, 1);
-    // mesh.Vertices[2] = new Base.Vertex(-1, -1, -1);
+    mesh.Vertices[0] = new Base.Vertex(-1, 1, 1);
+    mesh.Vertices[1] = new Base.Vertex(1, -1, 1);
+    mesh.Vertices[2] = new Base.Vertex(-1, -1, -1);
     //type2
-    mesh.Vertices[0] = new Base.Vertex(-1, 1, 0);
-    mesh.Vertices[1] = new Base.Vertex(1, 1, 0);
-    mesh.Vertices[2] = new Base.Vertex(-1, -1, 0);
+    // mesh.Vertices[0] = new Base.Vertex(-1, 1, 0);
+    // mesh.Vertices[1] = new Base.Vertex(1, 1, 0);
+    // mesh.Vertices[2] = new Base.Vertex(-1, -1, 0);
     //type3
     // mesh.Vertices[0] = new Base.Vertex(-1, 1, -1);
     // mesh.Vertices[1] = new Base.Vertex(1, 1, -1);
