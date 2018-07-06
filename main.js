@@ -14,9 +14,10 @@ var camera;
 var light;
 var previousDate;
 var windows_debug = true;
-var mesh_type = 1;//0-monkey,1-cube,2-triangle,3-face
+var mesh_type = 2 //0-monkey,1-cube,2-triangle,3-face
 var auto_move = false;
 var draw_border = false;
+var lightType = 3;
 
 document.addEventListener("DOMContentLoaded", init, false);
 
@@ -48,9 +49,9 @@ function init() {
     }
 
     light = new SoftEngine.Light();
-    light.Position = new BABYLON.Vector3(0, 1.5, -2);
+    light.Position = new BABYLON.Vector3(0, 10, -10);
     light.drawBorder = draw_border;
-    light.type = 2;
+    light.type = lightType;
 
     previousDate = new Date();
 
@@ -144,8 +145,11 @@ function loadTrangle() {
 
     //type1
     mesh.Vertices[0] = new Base.Vertex(-1, 1, 1);
+    mesh.Vertices[0].uvCoordinate = new BABYLON.Vector2(0,0);
     mesh.Vertices[1] = new Base.Vertex(1, -1, 1);
+    mesh.Vertices[1].uvCoordinate = new BABYLON.Vector2(1,0.5);
     mesh.Vertices[2] = new Base.Vertex(-1, -1, -1);
+    mesh.Vertices[2].uvCoordinate = new BABYLON.Vector2(0,1);
     //type2
     // mesh.Vertices[0] = new Base.Vertex(-1, 1, 0);
     // mesh.Vertices[1] = new Base.Vertex(1, 1, 0);
@@ -156,6 +160,7 @@ function loadTrangle() {
     // mesh.Vertices[2] = new Base.Vertex(-1, -1, -1);
 
     mesh.Faces[0] = { A: 0, B: 2, C: 1 };//逆时针
+    mesh.texture = new Base.Texture("inuyasha.png", 128, 128);
 
     mesh.update();
     meshes.push(mesh);

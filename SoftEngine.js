@@ -9,6 +9,7 @@ var Base;
             this.normalInWorld;//在世界坐标系上的法线矢量
             this.pointInWorld;//点在世界坐标系上的坐标
             this.pointInWorldToLightVector;//到光源的矢量
+            this.uvCoordinate;//uv坐标
             this.id = -1;
         }
 
@@ -110,11 +111,12 @@ var Base;
     Base.Line = Line;
 
     var Shader = (function () {
-        function Shader(v1, v2, v3, light, color) {
+        function Shader(v1, v2, v3, light, texture, color) {
             this.v1 = v1;
             this.v2 = v2;
             this.v3 = v3;
             this.light = light;
+            this.texture = texture;
             this.color = color;
             //三点组成的面的法线
             this.face_normal = Base.Vertex.normalVector(v1.pointInWorld, v2.pointInWorld, v3.pointInWorld);
@@ -148,9 +150,21 @@ var Base;
             var lx = this.interpolate(va.pointInWorldToLightVector.x, vb.pointInWorldToLightVector.x, p);
             var ly = this.interpolate(va.pointInWorldToLightVector.y, vb.pointInWorldToLightVector.y, p);
             var lz = this.interpolate(va.pointInWorldToLightVector.z, vb.pointInWorldToLightVector.z, p);
+            var tu = this.interpolate(va.uvCoordinate.x, vb.uvCoordinate.x, p);
+            var tv = this.interpolate(va.uvCoordinate.y, vb.uvCoordinate.y, p);
             v.normalInWorld = new BABYLON.Vector3(x,y,z);
             v.pointInWorldToLightVector = new BABYLON.Vector3(lx,ly,lz);
+            v.uvCoordinate = new BABYLON.Vector2(tu, tv);
             return v;
+        }
+        Shader.prototype._getColor = function(uv) {
+            if (this.texture) {
+                var clr = this.texture.map(uv.x, uv.y);
+                if (clr) {
+                    return clr;
+                }
+            }
+            return this.color;
         }
         Shader.prototype.getColor = function (va,vb,vc,vd,ix,iy, bDrawBorder) {
             //背部用紫色或者不绘制
@@ -168,7 +182,7 @@ var Base;
                 case 0:
                     return this.color;
 
-                //1 - 平行光，平面着色
+                //1 - 平行光，平面着色,纯色
                 case 1:
                     var ndotl = this.computeNDotL(this.face_normal, this.light.directionalLightVector());
                     return new BABYLON.Color4(
@@ -183,10 +197,11 @@ var Base;
                     var nex = this.interpolateNormal(vc, vd, iy);
                     var n = this.interpolateNormal(nsx, nex, ix);
                     var ndotl = this.computeNDotL(n.normalInWorld, this.light.directionalLightVector());
+                    var color = this._getColor(n.uvCoordinate)
                     return new BABYLON.Color4(
-                        this.color.r * ndotl,
-                        this.color.g * ndotl,
-                        this.color.b * ndotl, 1);
+                        color.r * ndotl,
+                        color.g * ndotl,
+                        color.b * ndotl, 1);
                         
                 //3 - 点光源，高氏着色
                 case 3:
@@ -195,10 +210,11 @@ var Base;
                     var nex = this.interpolateNormal(vc, vd, iy);
                     var n = this.interpolateNormal(nsx, nex, ix);
                     var ndotl = this.computeNDotL(n.normalInWorld, n.pointInWorldToLightVector);
+                    var color = this._getColor(n.uvCoordinate)
                     return new BABYLON.Color4(
-                        this.color.r * ndotl,
-                        this.color.g * ndotl,
-                        this.color.b * ndotl, 1);
+                        color.r * ndotl,
+                        color.g * ndotl,
+                        color.b * ndotl, 1);
             }
 
             return this.color;
@@ -208,6 +224,51 @@ var Base;
     })();
 
     Base.Shader = Shader;
+
+    // Texture
+    var Texture = (function () {
+        function Texture(filename, w, h) {
+            this.width = w;
+            this.height = h;
+            this.load(filename)
+        }
+
+        Texture.prototype.load = function (filename) {
+            var _this = this;
+            var imageTexture = new Image();
+            imageTexture.height = this.height;
+            imageTexture.width = this.width;
+            imageTexture.onload = function () {
+                var internalCanvas = document.createElement("canvas");
+                internalCanvas.width = _this.width;
+                internalCanvas.height = _this.height;
+                var internalContext = internalCanvas.getContext("2d");
+                internalContext.drawImage(imageTexture, 0, 0);
+                _this.internalBuffer = internalContext.getImageData(0, 0, _this.width, _this.height);
+            };
+            imageTexture.src = filename;
+        };
+
+        Texture.prototype.map = function (tu, tv) {
+            if (this.internalBuffer) {
+                var u = Math.abs(((tu * this.width) % this.width)) >> 0;
+                var v = Math.abs(((tv * this.height) % this.height)) >> 0;
+
+                var pos = (u + v * this.width) * 4;
+
+                var r = this.internalBuffer.data[pos];
+                var g = this.internalBuffer.data[pos + 1];
+                var b = this.internalBuffer.data[pos + 2];
+                var a = this.internalBuffer.data[pos + 3];
+
+                return new BABYLON.Color4(r / 255.0, g / 255.0, b / 255.0, a / 255.0);
+            } else {
+                return new BABYLON.Color4(1, 1, 1, 1);
+            }
+        };
+        return Texture;
+    })();
+    Base.Texture = Texture;
 
 })(Base || (Base = {}))
 
@@ -246,6 +307,7 @@ var SoftEngine;
             this.Faces = new Array(facesCount);
             this.Rotation = new BABYLON.Vector3(0, 0, 0);
             this.Position = new BABYLON.Vector3(0, 0, 0);
+            this.texture = null;
         }
 
         Mesh.prototype.update = function () {
@@ -401,6 +463,8 @@ var SoftEngine;
             var n2 = v2.normalInWorld;
             var l1 = v1.pointInWorldToLightVector;
             var l2 = v2.pointInWorldToLightVector;
+            var uv1 = v1.uvCoordinate;
+            var uv2 = v2.uvCoordinate;
 
             var x = this.interpolate(p1.x, p2.x, p1.y, p2.y, y);
             var z = this.interpolate(p1.z, p2.z, p1.y, p2.y, y);
@@ -414,11 +478,15 @@ var SoftEngine;
             var ly = this.interpolate(l1.y, l2.y, p1.y, p2.y, y);
             var lz = this.interpolate(l1.z, l2.z, p1.y, p2.y, y);
 
+            var u = this.interpolate(uv1.x, uv2.x, p1.y, p2.y, y);
+            var v = this.interpolate(uv1.y, uv2.y, p1.y, p2.y, y);
+
             var vertex = new Base.Vertex(0, 0, 0);
             vertex.normalInWorld = new BABYLON.Vector3(nx, ny, nz);
             vertex.projectPoint = new BABYLON.Vector3(x, y, z);
             vertex.pointInWorld = new BABYLON.Vector3(wx, wy, wz);
             vertex.pointInWorldToLightVector = new BABYLON.Vector3(lx, ly, lz);
+            vertex.uvCoordinate = new BABYLON.Vector2(u,v)
 
             return vertex;
         }
@@ -525,7 +593,7 @@ var SoftEngine;
                     this.project(v1, transformMatrix, worldMatrix);
                     this.project(v2, transformMatrix, worldMatrix);
                     this.project(v3, transformMatrix, worldMatrix);
-                    var shader = new Base.Shader(v1, v2, v3, light, new BABYLON.Color4(1, 1, 1, 1));
+                    var shader = new Base.Shader(v1, v2, v3, light, cMesh.texture, new BABYLON.Color4(1, 1, 1, 1));
                     this.drawTriangle(v1, v2, v3, shader);
 
                     // if(this.camera.Position.x == 0 && this.camera.Position.y == 0) {
